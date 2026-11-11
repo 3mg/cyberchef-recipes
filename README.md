@@ -1,5 +1,7 @@
 # Google Authenticator → Apple Passwords: CyberChef recipes
 
+**Native operations:** the [CyberChef overlay](cyberchef/README.md) adds a **Google Authenticator** category to the left Operations list, with **Google Authenticator to otpauth** and **Google Authenticator to QR**. These are compiled-in operations; the JSON recipes below also work in unmodified CyberChef.
+
 Convert Google Authenticator `otpauth-migration://offline?data=…` exports to individual standard `otpauth://` URLs or QR codes. Uses stock CyberChef operations; no custom plugin, server processing or external request is needed.
 
 ## Use

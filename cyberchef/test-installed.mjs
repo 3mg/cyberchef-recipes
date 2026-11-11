@@ -1,0 +1,32 @@
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
+import {readFileSync} from 'node:fs';
+const target=resolve(process.argv[2]||'.');
+const {default:Urls}=await import(pathToFileURL(target+'/src/core/operations/GoogleAuthenticatorToOtpauth.mjs'));
+const {default:Qr}=await import(pathToFileURL(target+'/src/core/operations/GoogleAuthenticatorToQR.mjs'));
+const {parseQrCode}=await import(pathToFileURL(target+'/src/core/lib/QRCode.mjs'));
+const vi=n=>{n=BigInt(n);const a=[];do{const b=Number(n&127n);n>>=7n;a.push(b|(n?128:0));}while(n);return Buffer.from(a);};
+const f=(n,v)=>typeof v==='number'||typeof v==='bigint'?Buffer.concat([vi(n*8),vi(v)]):Buffer.concat([vi(n*8+2),vi(Buffer.byteLength(v)),Buffer.from(v)]);
+function input({version=2,batchSize=0,index=0,algorithm=1,type=2,counter=0n}={}) {
+    const account=name=>Buffer.concat([f(1,'12345678901234567890'),f(2,name),f(3,'Demo'),f(4,algorithm),f(5,1),f(6,type),f(7,counter)]);
+    const payload=Buffer.concat([f(1,account('first')),f(1,account('second')),f(2,version),f(3,batchSize),f(4,index)]);
+    return 'otpauth-migration://offline?data='+encodeURIComponent(payload.toString('base64'));
+}
+const op=new Urls(),qr=new Qr(),urls=op.run(input()).split('\n');
+assert.equal(urls.length,2);
+assert.equal(new URL(urls[0]).searchParams.get('secret'),'GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ');
+assert.equal(decodeURIComponent(new URL(urls[1]).pathname),'/Demo:second');
+const args=[2,'PNG',6,4,'Medium'];
+const png=await qr.run(input(),args);
+assert.equal(await parseQrCode(Buffer.from(png),false),urls[1]);
+assert.match(qr.present(png,args),/^<img src="data:image\/png;base64,/);
+assert.throws(()=>qr.run(input(),[0,...args.slice(1)]),/Account number/);
+assert.throws(()=>qr.run(input(),[3,...args.slice(1)]),/Account number/);
+assert.throws(()=>op.run(input({algorithm:99})),/algorithm/);
+assert.throws(()=>op.run(input({batchSize:2})),/Incomplete/);
+assert.equal(op.run(input({batchSize:2,index:0})+'\n'+input({batchSize:2,index:1})).split('\n').length,4);
+assert.equal(new URL(op.run(input({type:1,counter:9007199254740993n})).split('\n')[0]).searchParams.get('counter'),'9007199254740993');
+const categories=JSON.parse(readFileSync(target+'/src/core/config/Categories.json'));
+assert.deepEqual(categories[1],{name:'Google Authenticator',ops:[op.name,qr.name]});
+console.log('Native operations: URLs, QR encode/decode, account selection, metadata, batch validation, unknown enum rejection, 64-bit HOTP and category registration passed.');
