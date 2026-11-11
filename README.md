@@ -21,6 +21,8 @@ Verified in CyberChef **10.22.1** in a browser. Supports SHA1/SHA256/SHA512, 6/8
 
 CyberChef's Protobuf Decode converts 64-bit integers to JavaScript numbers. Consequently HOTP counters above `9007199254740991` are rejected to avoid silent corruption. This recipe is for your own Authenticator exports, not a hardened parser for arbitrary hostile protobuf files; CyberChef's decoding happens before the recipe's validation.
 
+Envelope `version` is validated as non-negative int32 metadata, not restricted to `1`: conversion validates the actual OTP fields. Zero/omitted batch size is treated as an unbatched export (index must still be zero); positive multi-QR sizes retain completeness checks. This permits structurally compatible exports without claiming that every future schema is supported.
+
 Base32 conversion is implemented directly in JSONata without `$base64decode`, avoiding UTF-8 corruption and the older CyberChef Web Worker base64 helper bug. The `.proto` schema uses numeric OTP enums so unknown values can be rejected. Protobuf field names become camelCase in CyberChef's JSON output.
 
 ## Build and test

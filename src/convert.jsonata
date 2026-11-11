@@ -13,10 +13,10 @@
       $substring($b32, $reduce($split($substring($padded, $i * 5, 5), ""), function($a, $b) { $a * 2 + $number($b) }, 0), 1)
     }))
   )};
-  $payloads := $;
+  $payloads := [$map($, function($p) { $merge([$p, {"batchSize": $p.batchSize = 0 ? 1 : $p.batchSize}]) })];
   $assert($count($payloads) >= 1 and $count($payloads) <= 500, "Expected 1-500 export QR codes");
   $map($payloads, function($p) {(
-    $assert($p.version = 1, "Unsupported migration version");
+    $assert($p.version >= 0 and $p.version <= 2147483647, "Invalid migration version metadata");
     $assert($p.batchSize >= 1 and $p.batchSize <= 500 and $p.batchIndex >= 0 and $p.batchIndex < $p.batchSize, "Invalid batch metadata");
     $p.batchSize > 1 ? (
       $g := $payloads[batchId = $p.batchId];
