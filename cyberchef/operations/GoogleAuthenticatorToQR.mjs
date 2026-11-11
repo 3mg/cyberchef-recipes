@@ -10,16 +10,16 @@ class GoogleAuthenticatorToQR extends Operation {
         super();
         this.name = "Google Authenticator to QR";
         this.module = "GoogleAuthenticator";
-        this.inputType = "string";
+        this.inputType = "ArrayBuffer";
         this.outputType = "ArrayBuffer";
         this.presentType = "html";
-        this.description = "Converts a Google Authenticator export into a QR for one account. Account number starts at 1; increase it to scan the next account with Apple Passwords. Paste every migration URL from a multi-QR export, one per line. For a screenshot, put Parse QR Code first. All processing is local. Disable Options → Update the URL before entering real secrets. Apple Passwords may not support all HOTP/algorithm variants.";
+        this.description = "Opens PNG/JPEG QR images directly or accepts otpauth:// and otpauth-migration:// text, then renders a clean standard QR for the selected account. Account number starts at 1. With this operation first in the recipe, all Input tabs are combined automatically so multi-QR exports work together. No Parse QR Code step is needed. All processing stays in this browser. Input is excluded from state/share links while this operation is enabled. Original OTP algorithms, digits, periods and counters are preserved; Apple Passwords may not support every variant.";
         this.infoURL = "https://github.com/3mg/cyberchef-recipes";
         this.args = [{name: "Account number (starts at 1)", type: "number", value: 1, min: 1}, ...new GenerateQRCode().args];
     }
 
-    run(input, args) {
-        const accounts = migrationAccounts(input);
+    async run(input, args) {
+        const accounts = await migrationAccounts(input);
         const index = args[0];
         if (!Number.isInteger(index) || index < 1 || index > accounts.length) {
             throw new OperationError(`Account number must be from 1 to ${accounts.length}`);

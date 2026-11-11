@@ -13,4 +13,4 @@ RUN set -eu; cd /usr/share/nginx/html; \
     rm -f index.html.gz index.html.br
 LABEL org.opencontainers.image.title="CyberChef with Google Authenticator operations" \
       org.opencontainers.image.source="https://github.com/3mg/cyberchef-recipes" \
-      org.opencontainers.image.version="10.22.1-gauth-2"
+      org.opencontainers.image.version="10.22.1-gauth-3"

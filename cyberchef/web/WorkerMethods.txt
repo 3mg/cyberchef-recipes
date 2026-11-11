@@ -1,0 +1,62 @@
+    /** Collect one complete export across the Input tabs without altering them. */
+    bakeGoogleAuthenticatorInputs(inputData, recipe) {
+        if (this.app.baking) return;
+        this.cancelBake(true, false);
+        this.googleAuthenticatorInputNums = null;
+        this.totalOutputs = 1;
+        // Recipe breakpoints pause before the indexed operation. The first Step
+        // must execute the converter, never expose the transport envelope.
+        this.app.progress = inputData.step ? recipe.findIndex(operation => !operation.disabled && operation.op !== "Comment") + 1 : 0;
+        this.app.bake(Boolean(inputData.step));
+        this.recipeConfig = recipe;
+        this.loadingOutputs = 1;
+        const active = this.manager.tabs.getActiveTab("input");
+        this.manager.input.inputWorker.postMessage({
+            action: "bakeGoogleAuthenticatorInputs",
+            data: {inputNum: active, bakeId: this.bakeId}
+        });
+    }
+
+    /** Consume a complete in-memory input snapshot returned by InputWorker. */
+    queueGoogleAuthenticatorInput(inputData) {
+        if (!inputData.googleAuthenticatorBatch) return false;
+        if (!this.app.baking || inputData.bakeId !== this.bakeId) return true;
+        for (const number of inputData.emptyNums || []) {
+            this.manager.output.addOutput(number, false);
+            this.manager.output.set(number);
+        }
+        this.googleAuthenticatorInputNums = inputData.nums;
+        for (const number of inputData.nums) {
+            if (!this.manager.output.outputExists(number)) this.manager.output.addOutput(number, false);
+        }
+        if (inputData.waiting || inputData.error || inputData.nums.length === 0) {
+            this.loadingOutputs = 0;
+            this.totalOutputs = 0;
+            this.setBakingStatus(false);
+            for (const number of inputData.nums) {
+                if (inputData.error) this.manager.output.updateOutputError(inputData.error, number, 0);
+                else {
+                    this.manager.output.updateOutputMessage("Waiting for all Google Authenticator inputs to finish loading...", number, false);
+                    this.manager.output.updateOutputStatus("pending", number);
+                }
+            }
+            return true;
+        }
+        const message = `Converting ${inputData.nums.length} Google Authenticator input(s) together...`;
+        for (const number of inputData.nums) {
+            this.manager.output.updateOutputMessage(message, number, false);
+            this.manager.output.updateOutputStatus("pending", number);
+        }
+        return false;
+    }
+
+    /** Every input tab views the same combined account selection. */
+    mirrorGoogleAuthenticatorOutput(data) {
+        if (!this.googleAuthenticatorInputNums || data.bakeId !== this.bakeId) return;
+        for (const number of this.googleAuthenticatorInputNums) {
+            if (number === data.inputNum || !this.manager.output.outputExists(number)) continue;
+            if (data.error) this.manager.output.updateOutputError(data.error, number, data.progress);
+            else this.updateOutput({...data, inputNum: number}, number, data.bakeId, data.progress);
+        }
+    }
+

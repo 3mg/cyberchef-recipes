@@ -16,11 +16,13 @@ docker run --rm --cpus 4 --memory 12g \
   sh -ec 'npm ci --ignore-scripts --no-audit --no-fund
     npm run postinstall
     node cyberchef/install.mjs .
+    node cyberchef/web/test-batch.mjs .
+    npx grunt clean:config exec:generateConfig findModules
     node --no-warnings --no-experimental-fetch cyberchef/test-installed.mjs .
-    npx grunt clean:prod clean:config exec:generateConfig findModules webpack:web copy:standalone zip:standalone clean:standalone exec:calcDownloadHash chmod --msg=Homelab-Google-Authenticator'
+    npx grunt clean:prod webpack:web copy:standalone zip:standalone clean:standalone exec:calcDownloadHash chmod --msg=Homelab-Google-Authenticator-v3'
 # Upstream .dockerignore excludes build/, so package from a dedicated context.
 runtime_dir="$checkout_dir/.homelab-runtime"
 mkdir -p "$runtime_dir/build"
 cp -R "$checkout_dir/build/prod" "$runtime_dir/build/"
 cp "$repo_dir/cyberchef/nginx.conf" "$runtime_dir/nginx.conf"
-docker build -f "$repo_dir/cyberchef/Dockerfile" -t homelab/cyberchef:10.22.1-gauth-2 "$runtime_dir"
+docker build -f "$repo_dir/cyberchef/Dockerfile" -t homelab/cyberchef:10.22.1-gauth-3 "$runtime_dir"

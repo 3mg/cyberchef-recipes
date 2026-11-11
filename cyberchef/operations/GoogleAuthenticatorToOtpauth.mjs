@@ -1,14 +1,11 @@
 /** @license MIT @copyright 2026 3mg */
 import Operation from "../Operation.mjs";
 import OperationError from "../errors/OperationError.mjs";
-import {decodeAll, LIMIT} from "../lib/GoogleAuthenticatorMigration.mjs";
+import {accountsFromInput} from "../lib/GoogleAuthenticatorInput.mjs";
 
-export function migrationAccounts(input) {
+export async function migrationAccounts(input) {
     try {
-        if (typeof input !== "string" || input.length > LIMIT) {
-            throw Error("Export must be text, at most 512 KiB");
-        }
-        return decodeAll(input.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
+        return await accountsFromInput(input);
     } catch (error) {
         throw new OperationError(error.message);
     }
@@ -19,15 +16,15 @@ class GoogleAuthenticatorToOtpauth extends Operation {
         super();
         this.name = "Google Authenticator to otpauth";
         this.module = "GoogleAuthenticator";
-        this.description = "Converts Google Authenticator migration exports into standard otpauth:// URLs, one account per line. Paste all otpauth-migration:// URLs from an export, one per line. For a screenshot, put Parse QR Code before this operation. Processing is local. Before entering real secrets, disable Options → Update the URL. Incomplete multi-QR exports and unknown OTP parameters are rejected.";
+        this.description = "Opens PNG/JPEG QR images directly or accepts otpauth:// and otpauth-migration:// text. Normalises standard account URLs and converts Google Authenticator exports into one URL per account. With this operation first in the recipe, all Input tabs are combined automatically, including every part of a multi-QR export. No Parse QR Code step is needed. Processing stays in this browser. Input is excluded from state/share links while this operation is enabled. Incomplete exports and unsupported OTP parameters are rejected.";
         this.infoURL = "https://github.com/3mg/cyberchef-recipes";
-        this.inputType = "string";
+        this.inputType = "ArrayBuffer";
         this.outputType = "string";
         this.args = [];
     }
 
-    run(input) {
-        return migrationAccounts(input).map(account => account.url).join("\n");
+    async run(input) {
+        return (await migrationAccounts(input)).map(account => account.url).join("\n");
     }
 }
 

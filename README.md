@@ -2,6 +2,8 @@
 
 **Native operations:** the [CyberChef overlay](cyberchef/README.md) adds a **Google Authenticator** category to the left Operations list, with **Google Authenticator to otpauth** and **Google Authenticator to QR**. These are compiled-in operations; the JSON recipes below also work in unmodified CyberChef.
 
+The native operations accept PNG/JPEG QR screenshots directly, normalize ordinary `otpauth://` accounts, and combine multiple Input files into one complete migration export. Add **Google Authenticator to QR** as the first operation and load all screenshots together; no **Parse QR Code** step or manual URL merging is needed. The stock JSON recipes below use the older manual workflow.
+
 Convert Google Authenticator `otpauth-migration://offline?data=…` exports to individual standard `otpauth://` URLs or QR codes. Uses stock CyberChef operations; no custom plugin, server processing or external request is needed.
 
 ## Use
