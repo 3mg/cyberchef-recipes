@@ -22,4 +22,5 @@ docker run --rm --cpus 4 --memory 12g \
 runtime_dir="$checkout_dir/.homelab-runtime"
 mkdir -p "$runtime_dir/build"
 cp -R "$checkout_dir/build/prod" "$runtime_dir/build/"
-docker build -f "$repo_dir/cyberchef/Dockerfile" -t homelab/cyberchef:10.22.1-gauth-1 "$runtime_dir"
+cp "$repo_dir/cyberchef/nginx.conf" "$runtime_dir/nginx.conf"
+docker build -f "$repo_dir/cyberchef/Dockerfile" -t homelab/cyberchef:10.22.1-gauth-2 "$runtime_dir"

@@ -15,7 +15,7 @@ Requirements: Git and Docker; allow 12 GiB RAM for a production build. Node is s
 
 ```sh
 sh cyberchef/build.sh
-docker run --rm -p 127.0.0.1:8100:80 homelab/cyberchef:10.22.1-gauth-1
+docker run --rm -p 127.0.0.1:8100:80 homelab/cyberchef:10.22.1-gauth-2
 ```
 
 Base source: CyberChef 10.22.1, commit `9b2868a17866e7569726edd2cee61c4e9149344d`. The overlay installer is idempotent and rejects other application versions. Build output includes the normal downloadable standalone CyberChef archive. Upstream dependencies/runtime are kept at the installed baseline; this change is not an upstream security upgrade.
@@ -23,6 +23,8 @@ Base source: CyberChef 10.22.1, commit `9b2868a17866e7569726edd2cee61c4e9149344d
 `test-installed.mjs` tests the actual installed operation classes: text conversion, QR round trip, account selection and invalid indexes, complete/incomplete batches, unknown enums, compatible version metadata, large HOTP counters and category registration. The normal repository recipe tests remain independent.
 
 For an existing checkout, copy `cyberchef/` into it and run `node cyberchef/install.mjs /path/to/CyberChef`, then regenerate CyberChef's operation config/modules and build. New operation metadata and category entries are compiled into the application; no browser extension or local-storage import is required.
+
+The runtime adds content revisions to the main JavaScript/CSS URLs and serves static files with `Cache-Control: no-cache` so browsers revalidate them after an update. If an already-open tab still shows **465** operations without the new category, reload it without cache or open `/?build=gauth-2`; the custom build shows **467**. Saved recipes and favourites do not need to be reset.
 
 ## Updating and rollback
 
@@ -33,7 +35,7 @@ The included deployment utility runs inside the NOMAD admin container (which alr
 On the NOMAD host, after loading the built image:
 
 ```sh
-docker exec -i -w /app nomad_admin node --input-type=module - deploy homelab/cyberchef:10.22.1-gauth-1 < cyberchef/deploy-nomad.mjs
+docker exec -i -w /app nomad_admin node --input-type=module - deploy homelab/cyberchef:10.22.1-gauth-2 < cyberchef/deploy-nomad.mjs
 # Use the backupId printed by the successful deployment:
 docker exec -i -w /app nomad_admin node --input-type=module - rollback BACKUP_ID < cyberchef/deploy-nomad.mjs
 ```
