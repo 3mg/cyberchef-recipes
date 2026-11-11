@@ -37,7 +37,9 @@ try {
         await docker.getImage(value).inspect();
         const [rows]=await db.execute('SELECT id,container_image,source_repo,available_update_version FROM services WHERE service_name=?',[serviceName]);
         if(rows.length!==1)throw Error('Expected exactly one NOMAD CyberChef service');
-        const original=docker.getContainer(serviceName),old=await original.inspect();
+        const old=await docker.getContainer(serviceName).inspect();
+        // A name-based Docker handle stops resolving after rename().
+        const original=docker.getContainer(old.Id);
         if(old.Config.Image===value && rows[0].container_image===value)throw Error('This image is already deployed');
         if(old.Mounts.length)throw Error('Unexpected mounts; review before replacing this static-only container');
         const id=new Date().toISOString().replaceAll(':','-');
