@@ -38,7 +38,9 @@ npm audit
 
 `src/migration.proto` and `src/convert.jsonata` are embedded into the importable JSON recipes. Development dependencies are pinned to patched versions; deploying the JSON does not install any packages into CyberChef. Tests cover binary Base32, algorithms, labels, batches, invalid input and counter limits. Browser verification covers the actual CyberChef pipeline as well.
 
-## Self-host the recipe catalogue
+## Optional: self-host the recipe catalogue
+
+The separate catalogue is no longer deployed in homelab as of 2026-11-11. Use the native **Google Authenticator** operations in CyberChef on port 8100. The following instructions are retained for optional standalone hosting.
 
 `site/` is a static catalogue with links that open recipes in the adjacent CyberChef instance on port 8100. The links contain the recipe only, never an input secret. Customize `src/catalogue.mjs` if your CyberChef uses another port.
 
@@ -47,7 +49,7 @@ CYBERCHEF_URL=http://nomad.home.arpa:8100/ npm run build
 NOMAD_LAN_IP=192.168.1.230 docker compose -f deploy/compose.yml up -d
 ```
 
-The catalogue is available on port 8101. This is a separate static container with a read-only bind mount and survives recreation of the CyberChef container. It does not modify CyberChef, its database, or personal saved recipes. `NOMAD_LAN_IP` should be a trusted LAN address; no router/public exposure is required.
+After deployment, the catalogue is available on port 8101. This is a separate static container with a read-only bind mount and survives recreation of the CyberChef container. It does not modify CyberChef, its database, or personal saved recipes. `NOMAD_LAN_IP` should be a trusted LAN address; no router/public exposure is required.
 
 ## Attribution
 
