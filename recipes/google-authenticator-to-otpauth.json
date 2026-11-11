@@ -1,0 +1,124 @@
+[
+  {
+    "op": "Find / Replace",
+    "args": [
+      {
+        "option": "Regex",
+        "string": "^\\s+|\\s+$"
+      },
+      "",
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "op": "Fork",
+    "args": [
+      "\\n",
+      ",",
+      false
+    ]
+  },
+  {
+    "op": "Find / Replace",
+    "args": [
+      {
+        "option": "Regex",
+        "string": "^\\s+|\\s+$"
+      },
+      "",
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "op": "Find / Replace",
+    "args": [
+      {
+        "option": "Regex",
+        "string": "^otpauth-migration://offline\\?data=([A-Za-z0-9%+/=]+)$"
+      },
+      "$1",
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "op": "URL Decode",
+    "args": [
+      false
+    ]
+  },
+  {
+    "op": "From Base64",
+    "args": [
+      "A-Za-z0-9+/=",
+      false,
+      true
+    ]
+  },
+  {
+    "op": "Protobuf Decode",
+    "args": [
+      "syntax = \"proto3\";\nmessage MigrationPayload {\n  repeated OtpParameters otp_parameters = 1;\n  int32 version = 2;\n  int32 batch_size = 3;\n  int32 batch_index = 4;\n  int32 batch_id = 5;\n}\nmessage OtpParameters {\n  bytes secret = 1;\n  string name = 2;\n  string issuer = 3;\n  int32 algorithm = 4;\n  int32 digits = 5;\n  int32 type = 6;\n  int64 counter = 7;\n}\n",
+      false,
+      false
+    ]
+  },
+  {
+    "op": "Merge",
+    "args": [
+      false
+    ]
+  },
+  {
+    "op": "Find / Replace",
+    "args": [
+      {
+        "option": "Regex",
+        "string": "^([\\s\\S]*)$"
+      },
+      "[$1]",
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "op": "Jsonata Query",
+    "args": [
+      "(\n  $b64 := \"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/\";\n  $b32 := \"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567\";\n  $bits6 := function($n) {\n    $join($map([0..5], function($i) { $string($floor($n / $power(2, 5 - $i)) % 2) }))\n  };\n  $base32 := function($secret) {(\n    $assert($length($secret) > 0 and $length($secret) <= 1368, \"Invalid OTP secret length\");\n    $s := $replace($secret, /=+$/, \"\");\n    $bits := $substring($join($map($split($s, \"\"), function($c) { $bits6($length($substringBefore($b64, $c))) })), 0, $floor($length($s) * 6 / 8) * 8);\n    $padded := $bits & $substring(\"00000\", 0, (5 - $length($bits) % 5) % 5);\n    $join($map([0..($length($padded) / 5 - 1)], function($i) {\n      $substring($b32, $reduce($split($substring($padded, $i * 5, 5), \"\"), function($a, $b) { $a * 2 + $number($b) }, 0), 1)\n    }))\n  )};\n  $payloads := $;\n  $assert($count($payloads) >= 1 and $count($payloads) <= 500, \"Expected 1-500 export QR codes\");\n  $map($payloads, function($p) {(\n    $assert($p.version = 1, \"Unsupported migration version\");\n    $assert($p.batchSize >= 1 and $p.batchSize <= 500 and $p.batchIndex >= 0 and $p.batchIndex < $p.batchSize, \"Invalid batch metadata\");\n    $p.batchSize > 1 ? (\n      $g := $payloads[batchId = $p.batchId];\n      $assert($count($g) = $p.batchSize and $count($distinct($g.batchIndex)) = $p.batchSize and $count($g[batchSize != $p.batchSize]) = 0, \"Incomplete or duplicate multi-QR export: paste every migration URL, one per line\")\n    );\n    $assert($count($p.otpParameters) > 0, \"No OTP accounts\")\n  )});\n  $accounts := $payloads.otpParameters;\n  $assert($count($accounts) <= 500, \"Maximum 500 accounts\");\n  [$map($accounts, function($a) {(\n    $assert($a.algorithm in [1, 2, 3], \"Unsupported/unspecified algorithm (MD5 is rejected)\");\n    $assert($a.digits in [1, 2], \"Unsupported/unspecified digit count\");\n    $assert($a.type in [1, 2], \"Unsupported/unspecified OTP type\");\n    $assert($a.type != 1 or ($a.counter >= 0 and $a.counter <= 9007199254740991), \"HOTP counter cannot be represented exactly by CyberChef; use the browser converter\");\n    $algorithm := [\"SHA1\", \"SHA256\", \"SHA512\"][$a.algorithm - 1];\n    $label := ($a.issuer != \"\" ? $a.issuer & \":\" : \"\") & $a.name;\n    $assert($length($label) <= 1024, \"OTP label too long\");\n    \"otpauth://\" & ($a.type = 1 ? \"hotp\" : \"totp\") & \"/\" & $encodeUrlComponent($label) &\n    \"?secret=\" & $base32($a.secret) & \"&algorithm=\" & $algorithm & \"&digits=\" & ($a.digits = 1 ? \"6\" : \"8\") &\n    ($a.issuer != \"\" ? \"&issuer=\" & $encodeUrlComponent($a.issuer) : \"\") &\n    ($a.type = 1 ? \"&counter=\" & $string($a.counter) : \"\")\n  )})]\n)\n"
+    ]
+  },
+  {
+    "op": "Jsonata Query",
+    "args": [
+      "$join($, \"\\n\")"
+    ]
+  },
+  {
+    "op": "Find / Replace",
+    "args": [
+      {
+        "option": "Regex",
+        "string": "^\"|\"$"
+      },
+      "",
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  {
+    "op": "Unescape string",
+    "args": []
+  }
+]

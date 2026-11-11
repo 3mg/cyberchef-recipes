@@ -1,0 +1,1 @@
+{"name":"google-authenticator-cyberchef-recipes","private":true,"type":"module","scripts":{"build":"node src/build.mjs","test":"node --test test/*.test.mjs"},"devDependencies":{"jsonata":"2.2.2","protobufjs":"7.6.6"}}

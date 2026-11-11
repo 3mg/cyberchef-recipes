@@ -1,0 +1,42 @@
+(
+  $b64 := "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  $b32 := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  $bits6 := function($n) {
+    $join($map([0..5], function($i) { $string($floor($n / $power(2, 5 - $i)) % 2) }))
+  };
+  $base32 := function($secret) {(
+    $assert($length($secret) > 0 and $length($secret) <= 1368, "Invalid OTP secret length");
+    $s := $replace($secret, /=+$/, "");
+    $bits := $substring($join($map($split($s, ""), function($c) { $bits6($length($substringBefore($b64, $c))) })), 0, $floor($length($s) * 6 / 8) * 8);
+    $padded := $bits & $substring("00000", 0, (5 - $length($bits) % 5) % 5);
+    $join($map([0..($length($padded) / 5 - 1)], function($i) {
+      $substring($b32, $reduce($split($substring($padded, $i * 5, 5), ""), function($a, $b) { $a * 2 + $number($b) }, 0), 1)
+    }))
+  )};
+  $payloads := $;
+  $assert($count($payloads) >= 1 and $count($payloads) <= 500, "Expected 1-500 export QR codes");
+  $map($payloads, function($p) {(
+    $assert($p.version = 1, "Unsupported migration version");
+    $assert($p.batchSize >= 1 and $p.batchSize <= 500 and $p.batchIndex >= 0 and $p.batchIndex < $p.batchSize, "Invalid batch metadata");
+    $p.batchSize > 1 ? (
+      $g := $payloads[batchId = $p.batchId];
+      $assert($count($g) = $p.batchSize and $count($distinct($g.batchIndex)) = $p.batchSize and $count($g[batchSize != $p.batchSize]) = 0, "Incomplete or duplicate multi-QR export: paste every migration URL, one per line")
+    );
+    $assert($count($p.otpParameters) > 0, "No OTP accounts")
+  )});
+  $accounts := $payloads.otpParameters;
+  $assert($count($accounts) <= 500, "Maximum 500 accounts");
+  [$map($accounts, function($a) {(
+    $assert($a.algorithm in [1, 2, 3], "Unsupported/unspecified algorithm (MD5 is rejected)");
+    $assert($a.digits in [1, 2], "Unsupported/unspecified digit count");
+    $assert($a.type in [1, 2], "Unsupported/unspecified OTP type");
+    $assert($a.type != 1 or ($a.counter >= 0 and $a.counter <= 9007199254740991), "HOTP counter cannot be represented exactly by CyberChef; use the browser converter");
+    $algorithm := ["SHA1", "SHA256", "SHA512"][$a.algorithm - 1];
+    $label := ($a.issuer != "" ? $a.issuer & ":" : "") & $a.name;
+    $assert($length($label) <= 1024, "OTP label too long");
+    "otpauth://" & ($a.type = 1 ? "hotp" : "totp") & "/" & $encodeUrlComponent($label) &
+    "?secret=" & $base32($a.secret) & "&algorithm=" & $algorithm & "&digits=" & ($a.digits = 1 ? "6" : "8") &
+    ($a.issuer != "" ? "&issuer=" & $encodeUrlComponent($a.issuer) : "") &
+    ($a.type = 1 ? "&counter=" & $string($a.counter) : "")
+  )})]
+)
